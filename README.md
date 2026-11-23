@@ -846,7 +846,7 @@ node tools/accuracy.js --file test/fixtures/accuracy_set.json --mock --mock-accu
 |---|---|---|
 | `no_match` | **只出现在 HTTP 404**：访问了未知路径。`/api` 上本地未命中会继续走缓存/AI，失败时给的是 `ai_*` / `image_or_formula` / `ai_disabled`，**不会**给 `no_match`（T6 裁决，见 ACCEPTANCE） | 检查 URL 路径拼写；OCS 配置里的 url 必须指向 `/api?q=...`。库里确实没有的题，导入它，或者让 AI 答一次（会自动回写） |
 | `ai_timeout` | 单题超过 `ai.timeoutMs`（默认 20s）被 abort | 查网络/代理；换更快的模型（`qwen-flash`）；本地 Ollama 用 CPU 跑 7B 很容易超时，考虑 GPU 或调大 `QBANK_TIMEOUT_MS` |
-| `ai_moderation` | 百炼内容安全审核拦截（`DataInspectionFailed`） | **不会对同一家 provider 重试**，直接降级到链上下一个。看 `logs/moderation.log` 与 `/stats` 的 `ai.moderation`。治本办法见 §7.3 |
+| `ai_moderation` | 百炼内容安全审核拦截（`DataInspectionFailed`） | **不会对同一家 provider 重试**，直接降级到链上下一个。看 `logs/moderation.log` 与 `/stats` 的 `ai.moderation`。|
 | `ai_error` | 整条链全部失败：网络错误、401 Key 无效、429 限流耗尽重试、模型输出不符合题型格式 | 先怀疑 Key：`401` 就是 Key 错/欠费/地域不对。再看 stderr 的 `[qbank][ai][...]` 错误码。输出不合规通常是模型太小，换 `qwen-plus` 试试 |
 | `queue_full` | 并发闸队列满（默认并发 3、队列 200） | 降低请求速率；或调大 `QBANK_QUEUE_LIMIT` / `QBANK_CONCURRENCY`。这其实是保护机制在生效，不是 bug |
 | `image_or_formula` | 题干含图片（`![`、`<img`、图片扩展名）或 LaTeX 公式（`\frac`、`\begin{`、`\sqrt`、`\sum`、两个以上 `$`） | **设计内短路**，根本不调 AI —— 纯文本模型看不到图，硬调只会浪费钱并给出错误答案。这类题只能靠本地题库命中 |
@@ -871,7 +871,7 @@ node tools/accuracy.js --file test/fixtures/accuracy_set.json --mock --mock-accu
 | `cache.evictions` | 淘汰次数 | 涨得快可以把 `QBANK_CACHE_MAX_ENTRIES` 调大 |
 | `cache.writes` | 落盘次数 | 间隔 `cache.flushIntervalMs`（默认 30s），Ctrl+C 时会强制 flush |
 | `ai.calls` / `success` / `failed` | AI 调用总数 / 成功 / 失败 | `failed` 持续 = 0 且 `success` 在涨 → 链路健康 |
-| `ai.moderation` | 审核拦截次数 | 高 → 看 §7.3 |
+| `ai.moderation` | 审核拦截次数 | 高 → 内容审核拦截，属预期降级（OCS 跳过该题） |
 | `ai.timeout` | 超时次数（来自并发闸） | 高 → 调大 `timeoutMs` 或换快模型 |
 | `ai.queueFull` | 队列满拒绝次数 | 高 → 降速率或调大 `queueLimit` |
 | `ai.inflight` / `ai.queued` | 正在执行 / 排队中的 AI 任务 | **验收点**：并发 20 个请求时 `inflight` 必须 <= 3 |
@@ -884,19 +884,7 @@ node tools/accuracy.js --file test/fixtures/accuracy_set.json --mock --mock-accu
 | `match.imageOrFormula` | 图片/公式短路次数 | — |
 | `elapsed.p50` / `p95` / `p99` / `samples` | HTTP 端到端耗时分位数（滚动窗口） | 这是**含 AI 的真实耗时**，比 `tools/bench.js` 的纯检索耗时大得多，不要混淆 |
 
-### 7.3 审核拦截高发的课程怎么办
-
-思政、时政、法律、形势与政策这类课程被百炼审核拦截的概率明显更高。三条路，按推荐顺序：
-
-1. **优先把这些课的题库导入本地**。命中 L1 就根本不调 AI，既不受审核影响，也是最快的（< 0.01ms）。
-   AI 只当「库里确实没有的新题」的补充。
-2. **用本地 Ollama 兜底**：`QBANK_AI_FALLBACK=ollama`，本地模型没有云端内容审核。
-   代价是准确率低于 `qwen-flash`（7B 模型尤其明显），建议保留 `["bailian","ollama"]` 的顺序，
-   让百炼先试、被拦了再落到本地。
-3. **接受 `ai_moderation` 并把它计入运营成本**。这类题返回 `code:0`，OCS 会跳过，
-   不会填错答案 —— 这是保守且安全的失败方式。
-
-### 7.4 `bank.json` 损坏怎么回滚
+### 7.3 `bank.json` 损坏怎么回滚
 
 每次落盘都是「写临时文件 → 生成 `.bak` → 原子 rename」，所以永远有一份上一代的完整备份：
 
@@ -913,7 +901,7 @@ node server.js
 
 服务启动时读到坏 JSON 会回退成空库并打 stderr 警告，**不会崩溃**，此时 `/health` 的 `bank` 为 0。
 
-### 7.5 日志在哪、长什么样
+### 7.4 日志在哪、长什么样
 
 | 位置 | 内容 |
 |---|---|
@@ -924,7 +912,7 @@ node server.js
 **日志里绝不会出现题干、选项、答案原文，也不会出现任何真实 API Key。**
 这是硬性纪律：题库内容可能涉及版权，Key 泄露会被盗刷额度。排查问题时请提供 `key` 前 12 位而不是题目原文。
 
-### 7.6 其他常见问题
+### 7.5 其他常见问题
 
 | 现象 | 原因与处置 |
 |---|---|
@@ -938,7 +926,7 @@ node server.js
 | 服务能起但 `/health` 里 `ai.chain` 是空数组 | 缺 `DASHSCOPE_API_KEY` 且本地没起 Ollama。见 §3.4 / §3.5。此时新题返回 `ai_error` |
 | POST 发表单编码（`q=...&type=...`）返回 `bad_request` | 本服务 `/api` POST 只接受 JSON body（T3 裁决，T6 批准）。OCS 默认 GET/fetch JSON，不受影响；若你的 OCS 版本实测发表单编码，需回来给 server 加解析分支 |
 
-### 7.7 提 issue 的最小复现模板
+### 7.6 提 issue 的最小复现模板
 
 复制下面这段填好再提，**不要贴题目原文和 Key**：
 
@@ -1030,7 +1018,7 @@ node server.js
 3. **不支持 xlsx。** 零依赖约束下不解析 Office 文件，请先另存为 CSV UTF-8（§5.5）。
 4. **没有 Web 管理界面。** 人工验证条目只有 `POST /admin/verify` 这个 JSON 接口（§5.7）。
 5. **图片题与公式题不做。** 检测到就短路返回 `image_or_formula`，不调多模态模型（§7.1）。
-6. **百炼有内容安全审核。** 思政/时政/法律类题目拦截率偏高，应对策略见 §7.3。
+6. **百炼有内容安全审核。** 思政/时政/法律类题目拦截率偏高。
 7. **本地题库优先于缓存。** 同一道题如果 bank 和 cache 里都有，以 bank 为准
    （bank 是持久化的权威数据，cache 只是省一次 AI 调用的临时层）。
 8. **L2 模糊匹配对「措辞改写」无能为力。** 打分基于 bigram Dice + LCS，
@@ -1072,7 +1060,7 @@ node server.js
 - **日志与报表里不出现题目原文。**
   `logs/moderation.log` 与 stderr 只记录：`key` 前 12 位、错误码、计数、耗时、provider 名、行号。
   `tools/accuracy.js` 的报表只显示题干前 8 个字。
-  提 issue 时也请遵守同样的规则（§7.7 的模板）。
+  提 issue 时也请遵守同样的规则（§7.6 的模板）。
 - **只绑 `127.0.0.1`。** 默认配置就是回环地址，不要为了方便改成 `0.0.0.0`。
 - **进程永不崩溃。** 所有外部输入（HTTP 请求、题库文件、AI 响应、命令行参数）都被 `try/catch` 包住，
   任何一路失败都降级成 `code:0 + reason`，而不是抛异常或退出。
