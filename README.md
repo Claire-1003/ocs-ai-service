@@ -1007,49 +1007,12 @@ node server.js
 
 ## 9. 里程碑与验收清单
 
-### 9.1 里程碑
+里程碑与验收属过程性文档，本节只留指针，不再内联重复表格（权威来源均在库内）：
 
-| 阶段 | 内容 | 产出 |
-|---|---|---|
-| **M1** | 骨架：HTTP 服务、配置加载、CORS、静态假数据、`/health` `/stats` | 与 OCS 完成端到端握手 |
-| **M2** | 归一化 + L1/L2 匹配 + trigram 索引 + store | 本地检索完全可用 |
-| **M3** | AI 层：prompt、bailian provider、输出后处理、审核降级 | 新题能拿到 AI 答案 |
-| **M4** | 工程化：并发闸、LRU 缓存、回写、导入工具、日志 | 生产可用 |
-| **M5** | 验证与交付：bench、accuracy、README、集成验收 | 达标数字 + 文档 |
-
-### 9.2 验收清单（HANDOFF §12）
-
-| # | 验收项 | 怎么验 |
-|---|---|---|
-| 1 | `node server.js` 启动无报错，`GET /health` 返回 200 | `curl.exe http://127.0.0.1:8080/health` |
-| 2 | 粘贴 §4.1 配置到 OCS，能搜到本地已有题目并正确填答 | 导入 `test/fixtures/sample.csv` 后在 OCS 里实测 |
-| 3 | 本地无该题时走 AI，返回正确答案且写入 `bank.json`；第二次同题走 L1，无任何 AI 调用 | 查一道库里没有的题两次，比对 `/stats` 的 `ai.calls` 是否只 +1、`bank.bySource.ai` 是否 +1 |
-| 4 | 并发 20 个请求：服务不崩，AI 实际并发 <= 3，其余排队或 `queue_full` | 并发打 20 个新题，观察 `/stats` 的 `ai.inflight <= 3` |
-| 5 | 四种异常均返回 `code:0` 且进程不退出：断网/DNS 失败、401 无效 Key、审核拦截、超时 | 分别用错误 Key / 断网 / 敏感题 / 极小 `timeoutMs` 触发 |
-| 6 | `tools/bench.js`：5 万条数据，L1 < 1ms，L2 p95 < 50ms | `node tools/bench.js --file data/bench.json` |
-| 7 | `tools/accuracy.js`：20 道真实题目，AI 准确率 >= 85% | `node tools/accuracy.js --file test/fixtures/accuracy_set.json --out docs/accuracy-report.json` |
-| 8 | README 覆盖：安装、配置、OCS 对接、数据导入、故障排查 | 本文 §2 / §3 / §4 / §5 / §7 |
-
-T6 集成验收状态（原始输出全部归档在 `docs/ACCEPTANCE.md`）：**HANDOFF §12 八项全部 PASS**。
-第 6 项 T6 复测：5 万条全量采样，L1 avg 0.0087ms，L2 p95 13.69ms；
-第 7 项真实评测两次复跑均 **20/20 = 100% >= 85%**（bailian qwen-flash，tokens 合计 5241/次，报表 `docs/accuracy-report.json`）；
-第 2 项 OCS 浏览器实测 2026-11-22 闭环（/stats 快照 + 4 张截图见 ACCEPTANCE §2.2 与 `docs/evidence/`）。
-
-跑全量测试：
-
-```powershell
-node --test        # 自动发现 test/ 下全部用例（含 stubs 自检，292 条）
-node --test test/*.test.js test/stubs/t5-*.js   # 与 T1~T5 基线同口径（285 条）
-```
-
-> ⚠ Node 24 实测：`node --test test/`（带目录参数）会把目录当模块加载而报
-> `MODULE_NOT_FOUND`，请用上面两种写法（T6 修正，见 docs/ACCEPTANCE.md §3.3）。
-
-测试纪律：所有测试用 `listen(0)` 取随机端口（**不占 8080**），数据一律写在
-`os.tmpdir()` 下的 `qbank-*` 临时目录并在结束时删除，**绝不读写仓库里的 `data/` 与 `logs/`**，
-所有 server 与 interval 在测试结束时关闭（否则 `node --test` 会挂住）。
-
----
+- 实施里程碑（M1–M5）：`HANDOFF.md` §13。
+- 验收标准（§12.1–12.8）：`HANDOFF.md` §12。
+- 逐条实测证据（原始命令 + 原始输出）：`docs/ACCEPTANCE.md`。
+- 日常快速验证：本文件 §2.4 冒烟自测、§6 性能与准确率验收。
 
 ## 10. 已知局限
 
