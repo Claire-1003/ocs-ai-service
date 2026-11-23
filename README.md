@@ -7,8 +7,10 @@
 - **零第三方依赖**：不需要 `npm install`，仓库里没有也不会有 `node_modules`
 - **一条命令启动**：`node server.js`
 - **同题永不重复调用 AI**：AI 答过的题写回 `data/bank.json`，第二次直接走本地 O(1) 命中
-- **进程永不崩溃**：provider 可插拔、任意一路失败自动降级、所有外部输入 `try/catch`
+- **运行期高容错**：provider 可插拔、任意一路失败自动降级、外部输入 `try/catch`（启动阶段失败则快速退出，见 §11）
 - **只绑本机**：默认 `127.0.0.1`，无鉴权（见 [已知局限](#10-已知局限)）
+
+> **项目状态**：v1.0.0 · 个人学习与研究项目 · 按需维护（无商业支持）· MIT 许可证（见 [LICENSE](LICENSE)）· HANDOFF §12 八项验收已通过（证据见 `docs/ACCEPTANCE.md`）。
 
 ---
 
@@ -125,7 +127,7 @@ Set-Content -Path "$env:TEMP\qbank-demo.csv" -Encoding utf8 -Value @(
   '示例题干：甲等于多少,单选题,A.一|B.二|C.三|D.四,B'
 )
 node tools/import.js --file "$env:TEMP\qbank-demo.csv" --format csv --merge
-#    期望 stdout：{"parsed":1,"imported":1,"skipped":0,"duplicates":0,"failed":0,"elapsed":14}
+#    期望 stdout：{"parsed":1,"imported":1,"skipped":0,"duplicates":0,"failed":0,"elapsed":14}（elapsed 为示例值，随机器波动）
 
 # 2) 启动服务（保持这个窗口不关，另开一个窗口跑后面的 curl）
 node server.js
@@ -352,7 +354,7 @@ node tools/accuracy.js --file test/fixtures/accuracy_set.json --provider bailian
 注意事项：
 
 - 端点必须是 **OpenAI 兼容模式**：`https://dashscope.aliyuncs.com/compatible-mode/v1`
-- 新用户一般有免费额度；`qwen-flash` 单价很低，20 道题的评测花不了一分钱
+- 新用户一般有免费额度；`qwen-flash` 单价很低，20 道题评测合计约 5241 tokens（实测见 `docs/ACCEPTANCE.md` §2.7），花费在几分钱以内
 - Key 泄露 = 额度被盗刷。只走环境变量、只绑 `127.0.0.1`、不要写进 `config.json`、不要贴进 issue
 
 **其他厂商 Key 申请入口（Patch 8；预置默认值见 `lib/ai/presets.js`，来源注于其注释）**：
@@ -597,7 +599,7 @@ node tools/import.js --file <路径> --format csv|tsv|txt|json [选项]
 | `--verified` | 导入条目 `verified` 置 `true`（默认 `false`） |
 | `--verbose` | 额外诊断打到 stderr，**只有行号与错误码，绝无题目原文** |
 
-stdout 输出统计 JSON，退出码 `0` 成功 / `1` 失败：
+stdout 输出统计 JSON（`elapsed` 单位 ms，为示例值、随机器与数据量波动），退出码 `0` 成功 / `1` 失败：
 
 ```json
 { "parsed": 120, "imported": 118, "skipped": 0, "duplicates": 2, "failed": 0, "elapsed": 43 }
@@ -655,8 +657,9 @@ question,type,options,answer
 | 选项挤在一行 | `A.键盘 B.鼠标 C.显示器 D.打印机` 会自动拆开 |
 
 **局限**：没有任何题型标记、没有空行分隔的纯散文式文本切不开，
-这些行会被计入 `failed`。看 stdout 的 `parsed` / `imported` / `failed` 三个数就知道效果，
-`failed` 很大时先加 `--verbose` 看是哪些行号出的问题（日志里不会打印题目内容）。
+这些块会被计入 `skipped`（`failed` 统计的是切出后逐条格式校验失败的条目，二者不同）。
+看 stdout 的 `parsed` / `imported` / `skipped` / `failed` 就知道效果，
+`skipped` 很大时先加 `--verbose` 看是哪些行号出的问题（日志里不会打印题目内容）。
 
 ### 5.4 JSON
 
@@ -737,20 +740,23 @@ node tools/bench.js --file data/bench.json --json
 输出包含样本数、avg、p50、p95、p99、max、命中率、精确/模糊拆分、`rss` / `heapUsed` 内存、
 以及索引构建耗时、trigram 索引条目数与倒排总数、平均每查询候选数。
 
-实测输出（Node v24，5 万条，`--l1 2000 --l2 400 --warmup 50`）：
+示例输出（一次真实运行，Node v24，5 万条，`--l1 2000 --l2 400 --warmup 50`；**计时随机器与负载波动，仅供参考**，确定性统计可复现）。默认参数（L1 10000 / L2 2000 / 预热 200）的归档实测见 `docs/ACCEPTANCE.md` §2.6：
 
 ```
-[qbank][bench] 记录数=50000（原始 50000，跳过非法 0） 索引条目=50000 构建耗时=1106.753ms
+[qbank][bench] 题库=data/bench.json
+[qbank][bench] 记录数=50000（原始 50000，跳过非法 0） 索引条目=50000 构建耗时=1021.524ms
 [qbank][bench] trigram 索引：条目=11109 倒排总数=1338504 L2 平均候选数=200
 
 阶段              样本数   avg(ms)   p50(ms)   p95(ms)   p99(ms)   max(ms)   命中率   精确/模糊
 -----------------------------------------------------------------------------------------------
-L1 精确命中         2000    0.0090    0.0087    0.0116    0.0207    0.1369   100.0%      2000/0
-L2 模糊匹配          400    8.3131    8.2125   13.3186   14.6133   15.9438    66.8%       0/267
+L1 精确命中         2000    0.0086    0.0081    0.0114    0.0223    0.2059   100.0%      2000/0
+L2 模糊匹配          400    7.2091    7.0526   12.1771   14.2331   14.8999    66.8%       0/267
 
-[qbank][bench] 内存 rss=345.36MB heapUsed=204.51MB heapTotal=294.21MB
+[qbank][bench] 内存 rss=330.22MB heapUsed=154.34MB heapTotal=280.66MB
+[qbank][bench] 采样参数 l1=2000 l2=400 warmup=50 计时=process.hrtime.bigint()
+[qbank][bench] 命中层级 L1 阶段：精确=2000 退回模糊=0 未命中=0 | L2 阶段：精确=0 模糊=267 未命中=133 疑似=0
 
-[达标判定 HANDOFF §12.6] L1 avg 0.0090ms < 1ms [OK] | L2 p95 13.3186ms < 50ms [OK] -> PASS
+[达标判定 HANDOFF §12.6] L1 avg 0.0086ms < 1ms [OK] | L2 p95 12.1771ms < 50ms [OK] -> PASS
 ```
 
 **达标判定（HANDOFF §12.6）**：`L1 avg < 1ms` **且** `L2 p95 < 50ms` → `PASS`，否则 `FAIL`。
@@ -869,7 +875,7 @@ node tools/accuracy.js --file test/fixtures/accuracy_set.json --mock --mock-accu
 | `cache.size` | LRU 当前条数 | 上限 `cache.maxEntries`（默认 10000） |
 | `cache.hits` / `misses` | 缓存命中 / 未命中 | 命中率长期为 0 说明重复查询少，属正常 |
 | `cache.evictions` | 淘汰次数 | 涨得快可以把 `QBANK_CACHE_MAX_ENTRIES` 调大 |
-| `cache.writes` | 落盘次数 | 间隔 `cache.flushIntervalMs`（默认 30s），Ctrl+C 时会强制 flush |
+| `cache.writes` | 缓存写入（`set`）累计次数 | 每满 100 次写入触发一次落盘，另有 `cache.flushIntervalMs`（默认 30s）定时落盘，Ctrl+C 时强制 flush |
 | `ai.calls` / `success` / `failed` | AI 调用总数 / 成功 / 失败 | `failed` 持续 = 0 且 `success` 在涨 → 链路健康 |
 | `ai.moderation` | 审核拦截次数 | 高 → 内容审核拦截，属预期降级（OCS 跳过该题） |
 | `ai.timeout` | 超时次数（来自并发闸） | 高 → 调大 `timeoutMs` 或换快模型 |
@@ -886,7 +892,7 @@ node tools/accuracy.js --file test/fixtures/accuracy_set.json --mock --mock-accu
 
 ### 7.3 `bank.json` 损坏怎么回滚
 
-每次落盘都是「写临时文件 → 生成 `.bak` → 原子 rename」，所以永远有一份上一代的完整备份：
+每次落盘都是「先复制 `bank.json` → `bank.json.bak`，再写临时文件 + 原子 rename」，所以永远有一份上一代的完整备份：
 
 ```powershell
 # 1) 先停服务（Ctrl+C），避免边写边覆盖
@@ -916,7 +922,7 @@ node server.js
 
 | 现象 | 原因与处置 |
 |---|---|
-| `Error: listen EADDRINUSE: address already in use 127.0.0.1:8080` | 8080 被占。`$env:QBANK_PORT="8081"` 换端口（记得同步改 OCS 配置里的 url），或 `Get-NetTCPConnection -LocalPort 8080` 找到 PID 后结束它 |
+| stderr `[qbank][server][boot_failed] EADDRINUSE` | 8080 被占。`$env:QBANK_PORT="8081"` 换端口（记得同步改 OCS 配置里的 url），或 `Get-NetTCPConnection -LocalPort 8080` 找到 PID 后结束它 |
 | PowerShell 里 `curl` 行为怪异 | Windows PowerShell 的 `curl` 是 `Invoke-WebRequest` 的别名。请显式用 `curl.exe` |
 | PowerShell 里 URL 带 `&` 报错 | `&` 是保留字符，URL 必须整体加双引号 |
 | 中文查询在命令行里乱码 | 先 `chcp 65001`，或直接用浏览器地址栏 / OCS 发请求 |
@@ -969,6 +975,7 @@ node server.js
 │   ├── prompt.js                  # Prompt 模板（HANDOFF §7.3）
 │   └── ai/
 │       ├── index.js               # provider 路由 + fallback + 审核错误识别
+│       ├── presets.js             # 11 家厂商预置默认值（Patch 8，来源注于注释）
 │       ├── bailian.js             # 阿里云百炼（主力，OpenAI 兼容模式）
 │       ├── openai.js
 │       └── ollama.js              # 本地模型（免 Key、免审核）
@@ -985,9 +992,17 @@ node server.js
 ├── docs/
 │   ├── CONTRACT.md                # 模块接口契约 + 文件所有权矩阵 + 并行隔离约束
 │   ├── DECISIONS.md               # 规格矛盾裁决
-│   └── TASKS.md                   # 任务拆分与 DoD
+│   ├── TASKS.md                   # 任务拆分与 DoD
+│   ├── ACCEPTANCE.md              # T6 集成与验收报告（HANDOFF §12 逐条实测证据）
+│   ├── accuracy-report.json       # 准确率评测归档报表（§12.7）
+│   ├── evidence/                  # OCS 对接实测截图（§12.2）
+│   ├── PROMPT_PREFIX.md           # 并行窗口统一 Prompt 前缀
+│   ├── PROMPT_T6.md               # T6 集成与验收任务 Prompt
+│   └── T1-T5-REPORTS.md           # T1–T5 交付汇总与裁决记录
 ├── HANDOFF.md                     # 技术规格（唯一权威的对外协议来源）
+├── PROMPT.md                      # 项目原始构建 Prompt（角色与总需求）
 ├── .env.example                   # DASHSCOPE_API_KEY=
+├── .gitignore                     # 忽略 data/ logs/ .env node_modules 等
 └── README.md                      # 本文
 ```
 
@@ -1062,9 +1077,10 @@ node server.js
   `tools/accuracy.js` 的报表只显示题干前 8 个字。
   提 issue 时也请遵守同样的规则（§7.6 的模板）。
 - **只绑 `127.0.0.1`。** 默认配置就是回环地址，不要为了方便改成 `0.0.0.0`。
-- **进程永不崩溃。** 所有外部输入（HTTP 请求、题库文件、AI 响应、命令行参数）都被 `try/catch` 包住，
-  任何一路失败都降级成 `code:0 + reason`，而不是抛异常或退出。
+- **运行期不轻易崩溃。** 所有外部输入（HTTP 请求、题库文件、AI 响应、命令行参数）都被 `try/catch` 包住，
+  任何一路失败都降级成 `code:0 + reason`，而不是抛异常或退出；`uncaughtException` / `unhandledRejection` 也只记日志。
   `lib/` 里没有 `process.exit()`；模块顶层没有 I/O 与副作用。
+  **例外**：启动阶段失败（如端口被占 `EADDRINUSE`、配置无法加载）会打 `[qbank][server][boot_failed]` 并 `exit(1)` 快速退出，不进入服务态。
 - **AI 答案默认 `verified: false`。** 模型会犯错，未经人工核对的条目不该被当成权威数据。
   在意正确率就开 `writeback.requireVerified`，或者定期跑 `tools/accuracy.js` 抽查。
 
@@ -1094,6 +1110,12 @@ curl.exe http://127.0.0.1:8080/stats
 
 ---
 
+## 许可证
+
+本项目以 [MIT 许可证](LICENSE) 发布，Copyright (c) 2026 Claire-1003。许可证全文见仓库根目录 [`LICENSE`](LICENSE)。
+
+---
+
 ## 免责声明
 
 - 本项目（ocs-ai-service / ocs网课助手ai题库，内部代号 qbank）为个人学习与研究项目，仅供技术交流与研究用途。
@@ -1101,5 +1123,5 @@ curl.exe http://127.0.0.1:8080/stats
 - 使用者须自行遵守所在课程平台的服务条款及学校/机构的学术诚信规定。因使用本项目产生的一切后果（包括但不限于账号处罚、成绩作废、纪律处分）由使用者自行承担。
 - 本仓库仅包含代码与合成样例题，不分发任何平台题库数据或用户作答记录；请勿上传、分享第三方版权题目内容。
 - AI 生成的答案不保证正确性与完整性，不构成任何学术或专业建议。
-- 本项目按 MIT 许可证「按原样」提供，不附带任何明示或暗示的担保；作者不对因使用本项目造成的任何直接或间接损失承担责任。
+- 本项目按 [MIT 许可证](LICENSE)「按原样」提供，不附带任何明示或暗示的担保；作者不对因使用本项目造成的任何直接或间接损失承担责任。
 - 本声明不能豁免使用者在平台条款与学术诚信规定下应承担的义务，使用前请自行评估合规风险。
