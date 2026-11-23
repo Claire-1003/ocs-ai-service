@@ -1,6 +1,6 @@
 # qbank · 零第三方依赖的题库检索服务
 
-给 [OCS（Open Course Script）](https://github.com/OpenCourseScript) 用的本地题库后端。
+给 [OCS（Open Course Script）](https://github.com/ocsjs/ocsjs) 用的本地题库后端。
 对外兼容 OCS 开放题库协议（AnswererWrapper），对内实现
 **「本地精确检索 → 模糊匹配 → 大模型兜底 → 结果回写」** 的三层混合架构。
 
