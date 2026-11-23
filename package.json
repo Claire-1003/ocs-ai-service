@@ -1,0 +1,21 @@
+{
+  "name": "qbank",
+  "version": "1.0.0",
+  "description": "零第三方依赖的 Node.js 题库检索服务（OCS AnswererWrapper 兼容）：本地精确匹配 -> 模糊匹配 -> 大模型兜底 -> 结果回写",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test",
+    "import": "node tools/import.js",
+    "genbank": "node tools/genbank.js",
+    "bench": "node tools/bench.js",
+    "accuracy": "node tools/accuracy.js"
+  },
+  "keywords": ["ocs", "qbank", "zero-dependency", "llm"],
+  "license": "MIT"
+}

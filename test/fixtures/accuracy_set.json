@@ -1,0 +1,122 @@
+[
+  {
+    "type": "单选题",
+    "title": "在计算机中，1 KB 等于多少字节",
+    "options": "A.1024#B.512#C.2048#D.4096",
+    "answer": "A"
+  },
+  {
+    "type": "单选题",
+    "title": "下列 HTML 标签中，用于创建超链接的是",
+    "options": "A.div#B.a#C.span#D.ul",
+    "answer": "B"
+  },
+  {
+    "type": "单选题",
+    "title": "函数 f(x) = x^2 在 x = 2 处的导数值是",
+    "options": "A.2#B.6#C.4#D.8",
+    "answer": "C"
+  },
+  {
+    "type": "单选题",
+    "title": "光在真空中的传播速度约为",
+    "options": "A.3×10^6 m/s#B.3×10^10 m/s#C.3×10^4 m/s#D.3×10^8 m/s",
+    "answer": "D"
+  },
+  {
+    "type": "单选题",
+    "title": "下列物质中，属于电解质的是",
+    "options": "A.氯化钠#B.蔗糖#C.乙醇#D.葡萄糖",
+    "answer": "A"
+  },
+  {
+    "type": "单选题",
+    "title": "按质量计算，人体中含量最多的元素是",
+    "options": "A.碳#B.氢#C.氧#D.氮",
+    "answer": "C"
+  },
+  {
+    "type": "单选题",
+    "title": "中国古典小说《红楼梦》的作者是",
+    "options": "A.罗贯中#B.曹雪芹#C.吴承恩#D.施耐庵",
+    "answer": "B"
+  },
+  {
+    "type": "单选题",
+    "title": "OSI 参考模型一共划分为",
+    "options": "A.5 层#B.6 层#C.8 层#D.7 层",
+    "answer": "D"
+  },
+  {
+    "type": "多选题",
+    "title": "下列设备中，属于计算机输入设备的有",
+    "options": "A.键盘#B.打印机#C.鼠标#D.扫描仪",
+    "answer": "A#C#D"
+  },
+  {
+    "type": "多选题",
+    "title": "下列能源中，属于可再生能源的有",
+    "options": "A.太阳能#B.风能#C.煤炭#D.水能",
+    "answer": "A#B#D"
+  },
+  {
+    "type": "多选题",
+    "title": "下列数据结构中，属于线性结构的有",
+    "options": "A.二叉树#B.栈#C.队列#D.线性表",
+    "answer": "B#C#D"
+  },
+  {
+    "type": "多选题",
+    "title": "下列成果中，属于中国古代四大发明的有",
+    "options": "A.造纸术#B.印刷术#C.火药#D.地动仪",
+    "answer": "A#B#C"
+  },
+  {
+    "type": "多选题",
+    "title": "下列网络协议中，属于传输层协议的有",
+    "options": "A.TCP#B.IP#C.UDP#D.HTTP",
+    "answer": "A#C"
+  },
+  {
+    "type": "判断题",
+    "title": "HTTP 协议默认使用的端口号是 80",
+    "options": "A.正确#B.错误",
+    "answer": "正确"
+  },
+  {
+    "type": "判断题",
+    "title": "二进制数 1010 转换为十进制数等于 10",
+    "options": "A.正确#B.错误",
+    "answer": "正确"
+  },
+  {
+    "type": "判断题",
+    "title": "地球是太阳系中体积最大的行星",
+    "options": "A.正确#B.错误",
+    "answer": "错误"
+  },
+  {
+    "type": "判断题",
+    "title": "HTML 是一种程序设计语言",
+    "options": "A.正确#B.错误",
+    "answer": "错误"
+  },
+  {
+    "type": "填空题",
+    "title": "在 Python 语言中，用于定义函数的关键字是______",
+    "options": "",
+    "answer": "def"
+  },
+  {
+    "type": "填空题",
+    "title": "十进制数 25 转换为二进制数是______",
+    "options": "",
+    "answer": "11001"
+  },
+  {
+    "type": "问答题",
+    "title": "OSI 参考模型自下而上的前三层依次是什么",
+    "options": "",
+    "answer": "物理层、数据链路层、网络层"
+  }
+]

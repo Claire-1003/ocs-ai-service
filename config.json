@@ -1,0 +1,35 @@
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "cors": "*",
+  "ai": {
+    "enabled": true,
+    "fallback": ["bailian", "ollama"],
+    "concurrency": 3,
+    "queueLimit": 200,
+    "timeoutMs": 20000
+  },
+  "providers": {
+    "bailian": {
+      "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "model": "qwen-flash",
+      "apiKeyEnv": "DASHSCOPE_API_KEY",
+      "temperature": 0,
+      "maxTokens": 64
+    },
+    "ollama": { "baseUrl": "http://127.0.0.1:11434", "model": "qwen2.5:7b" },
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "apiKeyEnv": "OPENAI_API_KEY"
+    }
+  },
+  "match": {
+    "fuzzyThreshold": 0.9,
+    "suspiciousThreshold": 0.8,
+    "acceptSuspicious": false,
+    "candidateLimit": 200
+  },
+  "cache": { "maxEntries": 10000, "flushIntervalMs": 30000 },
+  "writeback": { "enabled": true, "requireVerified": false }
+}

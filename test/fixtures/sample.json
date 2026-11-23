@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "updatedAt": 1700000000000,
+  "records": [
+    {
+      "key": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "title": "下列关于党的二十大报告的说法，正确的是（ ）",
+      "options": [
+        "A.高质量发展是全面建设社会主义现代化国家的首要任务",
+        "B.报告提出到2035年基本实现社会主义现代化",
+        "C.报告没有提及共同富裕",
+        "D.中国式现代化是全体人民共同富裕的现代化"
+      ],
+      "answer": "A",
+      "type": "单选题",
+      "source": "ai",
+      "model": "qwen-flash",
+      "verified": true,
+      "createdAt": 1700000000001
+    },
+    {
+      "title": "中国梦的本质内涵是什么",
+      "options": "A.国家富强#B.民族振兴#C.人民幸福#D.世界和平",
+      "answer": "A#B#C",
+      "type": "多选题"
+    },
+    {
+      "title": "下列属于计算机网络拓扑结构的有",
+      "options": "A.星型|B.环型|C.树型|D.线性",
+      "answer": "A#B#C",
+      "type": "多选题"
+    },
+    {
+      "title": "民法典自施行之日起同时废止婚姻法",
+      "options": [
+        "A.正确",
+        "B.错误"
+      ],
+      "answer": "对",
+      "type": "判断题"
+    },
+    {
+      "title": "我国的国家机构实行____的原则",
+      "options": [],
+      "answer": "民主集中制",
+      "type": "填空题"
+    },
+    {
+      "title": "中国梦的本质内涵是什么",
+      "options": [
+        "D.世界和平",
+        "B.民族振兴",
+        "A.国家富强",
+        "C.人民幸福"
+      ],
+      "answer": "A#B#C",
+      "type": "多选题"
+    },
+    "这一条不是对象，应当被计入 failed",
+    {
+      "title": "缺少答案的条目",
+      "options": [
+        "A.甲",
+        "B.乙"
+      ],
+      "type": "单选题"
+    }
+  ]
+}
