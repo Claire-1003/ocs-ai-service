@@ -911,7 +911,9 @@ node server.js
 │   ├── evidence/                  # OCS 对接实测截图（§12.2）
 │   ├── PROMPT_PREFIX.md           # 并行窗口统一 Prompt 前缀
 │   ├── PROMPT_T6.md               # T6 集成与验收任务 Prompt
-│   └── T1-T5-REPORTS.md           # T1–T5 交付汇总与裁决记录
+│   ├── T1-T5-REPORTS.md           # T1–T5 交付汇总与裁决记录
+│   ├── CONFIG-REFERENCE.md        # config.json 字段与环境变量覆盖全表（README §3 外置）
+│   └── STATS-REFERENCE.md         # /stats 字段全表（README §7.2 外置）
 ├── HANDOFF.md                     # 技术规格（唯一权威的对外协议来源）
 ├── PROMPT.md                      # 项目原始构建 Prompt（角色与总需求）
 ├── .env.example                   # DASHSCOPE_API_KEY=
